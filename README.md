@@ -47,22 +47,6 @@ This directory will contain the cleaned data file (e.g., CSV or exported BigQuer
 ### 1. Pivot Survey Data by Month
 This query pivots survey data by candidate name and tracks their performance across months.
 
-```sql
-SELECT
-  Name,
-  AVG(CASE WHEN FORMAT_DATE('%Y-%m', Date) = '2024-12' THEN Percentage END) AS `2024-Dec`,
-  AVG(CASE WHEN FORMAT_DATE('%Y-%m', Date) = '2025-01' THEN Percentage END) AS `2025-Jan`,
-  AVG(CASE WHEN FORMAT_DATE('%Y-%m', Date) = '2025-02' THEN Percentage END) AS `2025-Feb`,
-  AVG(CASE WHEN FORMAT_DATE('%Y-%m', Date) = '2025-03' THEN Percentage END) AS `2025-Mar`,
-  AVG(CASE WHEN FORMAT_DATE('%Y-%m', Date) = '2025-04' THEN Percentage END) AS `2025-Apr`
-FROM
-  `your_project.your_dataset.sws_survey`
-WHERE
-  Election = '2025 Philippine general election'
-GROUP BY
-  Name
-ORDER BY
-  Name;
 
 # Example 2: Calculate Median Performance for 2025 Philippine Senatorial Candidates
 
@@ -78,23 +62,6 @@ The data used in this analysis is sourced from the **Social Weather Stations (SW
 
 The query calculates the median percentage of each candidate's performance across all available survey data. It uses BigQuery's `APPROX_QUANTILES` function to calculate the median, which is the middle value when the data is sorted from the smallest to the largest.
 
-### SQL Query:
-
-```sql
-SELECT
-  Name,                                  -- Candidate Name
-  Party,                                 -- Political Party
-  APPROX_QUANTILES(Percentage, 100)[OFFSET(50)] AS Median_Percentage 
-  -- MEDIAN: The middle value when percentages are ordered from smallest to largest (shows the "typical" survey result, less sensitive to outliers)
-FROM
-  `your_project.your_dataset.sws_survey` -- Your dataset and table
-WHERE
-  Election = '2025 Philippine general election' -- Filter for 2025 election only
-GROUP BY
-  Name, Party                            -- Group by candidate and party
-ORDER BY
-  Median_Percentage DESC                 -- Sort highest to lowest median
-LIMIT 12;                                 -- Get top 12 candidates
 # Example 3: Calculate Both Average and Median Performance for 2025 Philippine Senatorial Candidates
 
 ## Overview
@@ -110,34 +77,3 @@ The data used in this analysis is sourced from the **Social Weather Stations (SW
 ## SQL Query Explanation
 
 This query combines the use of two key metrics: the **average** and the **median**. It first calculates the average percentage of performance for each candidate and then uses BigQuery's `APPROX_QUANTILES` function to estimate the median. Both statistics are calculated for each candidate, grouped by name and party.
-
-### SQL Query:
-
-```sql
-WITH Stats AS (                          -- Create a temporary result (CTE) named Stats
-  SELECT
-    Name,                                -- Candidate Name
-    Party,                               -- Political Party
-    AVG(Percentage) AS Average_Percentage, 
-    -- AVERAGE: Measures the overall survey performance by adding all scores and dividing by count
-    APPROX_QUANTILES(Percentage, 100)[OFFSET(50)] AS Median_Percentage 
-    -- MEDIAN: Shows the middle survey score, giving a better idea when there are extreme values
-  FROM
-    `your_project.your_dataset.sws_survey` -- Your dataset and table
-  WHERE
-    Election = '2025 Philippine general election' -- Filter for 2025 election only
-  GROUP BY
-    Name, Party                          -- Group by candidate and party
-)
-
-SELECT
-  Name,                                  -- Candidate Name
-  Party,                                 -- Political Party
-  Average_Percentage,                    -- Display the average value
-  Median_Percentage                      -- Display the median value
-FROM
-  Stats
-ORDER BY
-  Median_Percentage DESC,                -- Sort primarily by median (fairer comparison)
-  Average_Percentage DESC                -- If tie, sort by average
-LIMIT 12;                                 -- Show top 12 candidates
